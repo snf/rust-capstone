@@ -6,6 +6,8 @@ extern crate libc;
 #[macro_use] extern crate bitflags;
 
 use libc::{c_int, c_void, size_t};
+use std::error;
+use std::fmt;
 use std::ffi::CStr;
 
 mod ll;
@@ -56,8 +58,8 @@ pub enum Opt {
 
 #[derive(Debug)]
 pub struct Error {
-    pub code: usize,
-    pub desc: Option<String>,
+    code: usize,
+    desc: Option<String>,
 }
 
 impl Error {
@@ -66,6 +68,25 @@ impl Error {
             let cstr = ll::cs_strerror(err as i32) as *const _;
             Error{ code: err, desc: Some(String::from_utf8_lossy(CStr::from_ptr(cstr).to_bytes()).to_string()) }
         }
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "CS error: {} ({:?})", self.code, self.desc)
+    }
+}
+
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        match self.desc {
+            Some(ref s) => s,
+            None => ""
+        }
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        None
     }
 }
 
